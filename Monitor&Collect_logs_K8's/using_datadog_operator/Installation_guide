@@ -1,0 +1,78 @@
+########### GETTING STARTED WITH THE DATADOG OPERATOR ###################
+
+
+The Datadog Operator is an open source Kubernetes Operator that enables you to deploy and configure the Datadog Agent in a Kubernetes environment. This guide describes how to use the Operator to deploy the Datadog Agent.
+
+#################Prerequisites##############################
+1) Kubernetes v1.20.X+( Create an eks cluster from aws console or using Terraform scripts)
+2) Helm for deploying the Datadog Operator
+
+i) curl -sSL https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+
+ii) helm version --short
+
+
+3) The Kubernetes command-line tool, kubectl, for installing the Datadog Agent
+
+i) curl -o kubectl https://s3.us-west-2.amazonaws.com/amazon-eks/1.23.7/2022-06-29/bin/linux/amd64/kubectl
+
+ii) chmod +x ./kubectl
+
+iii) mkdir -p $HOME/bin && cp ./kubectl $HOME/bin/kubectl && export PATH=$PATH:$HOME/bin
+
+iv) echo 'export PATH=$PATH:$HOME/bin' >> ~/.bashrc
+
+v) kubectl version --short --client
+
+
+######################################################################################################
+############################     Installation and deployment     #####################################
+
+1) Install the Datadog Operator with Helm:
+
+i) helm repo add datadog https://helm.datadoghq.com
+
+ii) helm install my-datadog-operator datadog/datadog-operator
+
+2) Create a Kubernetes secret with your API key:
+
+i) kubectl create secret generic datadog-secret --from-literal api-key=<DATADOG_API_KEY>.
+
+Replace <DATADOG_API_KEY> with your Datadog API key.
+
+3) Create a datadog-agent.yaml file with the spec of your DatadogAgent deployment configuration. The following sample configuration enables metrics, logs, and APM:
+
+apiVersion: datadoghq.com/v2alpha1
+kind: DatadogAgent
+metadata:
+  name: datadog
+spec:
+  global:
+    credentials:
+      apiSecret:
+        secretName: datadog-secret
+        keyName: api-key
+      <!-- appSecret:
+        secretName: datadog-secret
+        keyName: app-key -->
+  features:
+    apm:
+      enabled: true
+    logCollection:
+      enabled: true
+
+4) Deploy the Datadog Agent:
+
+i) kubectl apply -f /path/to/your/datadog-agent.yaml
+
+################## Validation ############################
+
+Use kubectl get daemonset and kubectl get pod -owide to validate your installation
+
+In a cluster with two worker Nodes, you should see Agent Pods created on each Node:
+
+################## Cleanup ###############################
+
+i) kubectl delete datadogagent datadog
+
+ii) helm delete my-datadog-operator
